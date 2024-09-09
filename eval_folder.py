@@ -21,7 +21,18 @@ for gpu in gpus:
 class Eval_folder:
     def __init__(self, model_interf, data_path, batch_size=128, save_embeddings=None):
         if isinstance(model_interf, str) and model_interf.endswith("h5"):
-            model = tf.keras.models.load_model(model_interf)
+            try:
+                model = tf.keras.models.load_model(model_interf)
+            except:
+                import GhostFaceNets
+
+                model_name = "ghostnetv1" if "ghostnetv1" in model_interf else "ghostnetv2"
+                model = GhostFaceNets.buildin_models("ghostnetv2", dropout=0, emb_shape=512, output_layer='GDC', bn_momentum=0.9, bn_epsilon=1e-5)
+                model = GhostFaceNets.add_l2_regularizer_2_model(model, weight_decay=5e-4, apply_to_batch_normal=False)
+                model = GhostFaceNets.replace_ReLU_with_PReLU(model)
+                model.load_weights(model_interf)
+                print("\n\nLoad model build from backbone GhostFaceNet version: ", model_name, "\n")
+
             self.model_interf = lambda imms: model((imms - 127.5) * 0.0078125).numpy()
         else:
             self.model_interf = model_interf
